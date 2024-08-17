@@ -12,11 +12,12 @@ import time
 import os
 
 # LinkedIn credentials (should be secured in practice)
-username = "colinjangel"
-password = "iG2&CWeV2YhgP6$"
+username = ""
+password = ""
 
 # Path to your ChromeDriver
-chrome_driver_path = '/usr/local/bin/chromedriver'  # Ensure this path is correct
+chrome_driver_path = '/opt/homebrew/bin/chromedriver'
+  # Ensure this path is correct
 
 # Initialize WebDriver using Service
 service = Service(chrome_driver_path)

@@ -1,12 +1,10 @@
-// app/api/export-contacts/route.ts
-
 import { NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
 
 export async function POST() {
-  const scriptPath = path.join(process.cwd(), 'scripts', 'export_contacts.py');
-  
+  const scriptPath = path.join(process.cwd(), 'scripts', 'linkedin_script.py');
+
   return new Promise((resolve, reject) => {
     const pythonProcess = spawn('python3', [scriptPath]);
 
@@ -20,9 +18,9 @@ export async function POST() {
 
     pythonProcess.on('close', (code) => {
       if (code === 0) {
-        resolve(NextResponse.json({ message: 'Contacts exported successfully' }));
+        resolve(NextResponse.json({ message: 'Selenium script ran successfully' }));
       } else {
-        resolve(NextResponse.json({ error: 'Failed to export contacts' }, { status: 500 }));
+        resolve(NextResponse.json({ error: 'Failed to run Selenium script' }, { status: 500 }));
       }
     });
   });

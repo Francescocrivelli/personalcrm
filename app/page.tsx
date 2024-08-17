@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Papa from "papaparse";
 
 export default function Home() {
@@ -12,6 +12,22 @@ export default function Home() {
   const [isLoginSubmitted, setIsLoginSubmitted] = useState(false);
   const [csvData, setCsvData] = useState<string[][]>([]);
   const [isContactsModalVisible, setIsContactsModalVisible] = useState(false);
+  const [fileExists, setFileExists] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const checkForFile = async () => {
+      const response = await fetch('/api/upload');
+      if (response.ok) {
+        const result = await response.json();
+        const parsedData = Papa.parse(result.fileContent, { header: true });
+        setCsvData(parsedData.data as string[][]);
+        setFileExists(true);
+      }
+    };
+
+    checkForFile();
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -43,16 +59,55 @@ export default function Home() {
     setIsContactsModalVisible(true);
   };
 
-  const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCsvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      Papa.parse(file, {
-        complete: (result) => {
-          setCsvData(result.data as string[][]);
-        },
-        header: true,
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
       });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('File stored at:', result.filePath);
+
+        // You can parse the file locally if needed
+        Papa.parse(file, {
+          complete: (result) => {
+            setCsvData(result.data as string[][]);
+          },
+          header: true,
+        });
+
+        setFileExists(true);  // Set fileExists to true after uploading
+      } else {
+        console.error('File upload failed');
+      }
     }
+  };
+
+  const runScriptAndDownload = async () => {
+    setLoading(true);
+    const response = await fetch('/api/run-selenium', {
+      method: 'POST',
+    });
+
+    if (response.ok) {
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'linkedin_data.zip';  // Set the file name
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } else {
+      console.error('Failed to run Python script');
+    }
+    setLoading(false);
   };
 
   return (
@@ -130,6 +185,17 @@ export default function Home() {
             </button>
           </form>
 
+          {/* Button to Run Selenium Script and Download LinkedIn Data */}
+          <div className="mt-8">
+            <button
+              onClick={runScriptAndDownload}
+              className="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-lg transition-transform transform hover:-translate-y-1"
+              disabled={loading}
+            >
+              {loading ? 'Processing...' : 'Download LinkedIn Data'}
+            </button>
+          </div>
+
           {/* Modal Section */}
           {isModalVisible && (
             <div className="mt-6 p-6 bg-gray-100 border border-gray-300 rounded-lg shadow-lg w-full">
@@ -144,12 +210,14 @@ export default function Home() {
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white p-8 rounded-lg shadow-lg max-w-2xl w-full">
             <h2 className="text-2xl font-semibold mb-4 text-black">Contacts</h2>
-            <input
-              type="file"
-              accept=".csv"
-              onChange={handleCsvUpload}
-              className="mb-4"
-            />
+            {!fileExists && (
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleCsvUpload}
+                className="mb-4"
+              />
+            )}
             <div className="overflow-auto max-h-64">
               <table className="min-w-full bg-white">
                 <thead>
